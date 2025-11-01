@@ -20,15 +20,15 @@ async def check_denon_status(ip_address: str, port: int = 23):
     except Exception:
         return 'NOT_FOUND'
 
-def update_status_label(status: str):
+def update_status_label(status: str):                           #Label color
     if status == 'ON':
-        status_label.config(text='Denon je zapnutý', background='green', foreground='white')
+        status_label.config(text='ON', background='green', foreground='white')
     elif status == 'STANDBY':
-        status_label.config(text='Denon je v pohotovosti', background='orange', foreground='black')
+        status_label.config(text='STANDBY', background='orange', foreground='black')
     elif status == 'UNKNOWN':
-        status_label.config(text='Neznámy stav zariadenia', background='gray', foreground='white')
+        status_label.config(text='NOT AVAILABLE', background='gray', foreground='white')
     else:
-        status_label.config(text='Zariadenie nenájdené', background='red', foreground='white')
+        status_label.config(text='NOT FOUND', background='red', foreground='white')
 
 def on_connect():
     ip = ip_entry.get()
@@ -41,7 +41,7 @@ async def run_check(ip):
 
 # 🖼️ GUI setup
 root = tk.Tk()
-root.title("Denon AVR Status Checker")
+root.title("Receiver control")
 root.geometry("400x200")
 root.resizable(False, False)
 
