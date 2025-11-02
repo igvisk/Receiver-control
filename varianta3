@@ -1,48 +1,140 @@
 import tkinter as tk
+from tkinter import ttk
+import asyncio
+import telnetlib3
 
+
+#switch frames
 def show_dashboard():
     clear_right_frame()
-    dashboard_label = tk.Label(right_frame, text="Dashboard", bg="green", fg="white", font=("Arial", 16))
+    dashboard_label = ttk.Label(right_frame, text="Dashboard", style="Dashboard.TLabel")
     dashboard_label.pack(expand=True, fill="both")
 
 def show_settings():
+    global ip_entry, status_label
     clear_right_frame()
-    settings_label = tk.Label(right_frame, text="Settings", bg="blue", fg="white", font=("Arial", 16))
-    settings_label.pack(expand=True, fill="both")
+
+    # Vnútorný rám pre všetky widgety Settings
+    settings_frame = ttk.Frame(right_frame)
+    settings_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+    # Nadpis
+    header = ttk.Label(settings_frame, text="Settings\nZadaj IP adresu AVR:", style="Settings.TLabel")
+    header.pack(fill="x", pady=10)
+
+    # IP entry
+    ip_entry = ttk.Entry(settings_frame, width=30)
+    ip_entry.insert(0, "192.168.88.110")
+    ip_entry.pack(pady=5)
+
+    # Tlačidlo
+    ttk.Button(settings_frame, text="Pripojiť", command=on_connect).pack(pady=10)
+
+    # Status label (ttk verzia so štýlom)
+    status_label = ttk.Label(settings_frame, text="Status", style="Status.TLabel")
+    status_label.pack(pady=10, fill="x")
+
+
 
 def clear_right_frame():
     for widget in right_frame.winfo_children():
         widget.destroy()
+######
+
+#Settings functions
+async def check_denon_status(ip_address: str, port: int = 23):
+    try:
+        reader, writer = await telnetlib3.open_connection(ip_address, port)
+        writer.write('PW?\r')  # Power status command
+        response = await reader.read(100)
+        writer.close()
+        await writer.wait_closed()
+
+        if 'PWON' in response:
+            return 'ON'
+        elif 'PWSTANDBY' in response:
+            return 'STANDBY'
+        else:
+            return 'UNKNOWN'
+    except Exception:
+        return 'NOT_FOUND'
+
+def update_status_label(status: str):
+    if status == 'ON':
+        status_label.config(text='ON', style="On.TLabel")
+    elif status == 'STANDBY':
+        status_label.config(text='STANDBY', style="Standby.TLabel")
+    elif status == 'UNKNOWN':
+        status_label.config(text='NOT AVAILABLE', style="Unknown.TLabel")
+    else:
+        status_label.config(text='NOT FOUND', style="Error.TLabel")
+
+
+
+def on_connect():
+    global ip_entry, status_label
+    if ip_entry is None or status_label is None:
+        print("IP entry or status label not initialized.")
+        return
+
+    ip = ip_entry.get()
+    status_label.config(text='Kontrolujem...', style="Checking.TLabel")
+    asyncio.run(run_check(ip))
+
+
+async def run_check(ip):
+    status = await check_denon_status(ip)
+    update_status_label(status)
+#######
+
 
 # Hlavné okno
 window = tk.Tk()
 window.title("Receiver control")
-window.geometry("800x400")  # väčšie okno pre lepší pomer
+window.geometry("800x400")
 
-# Nastavenie grid layoutu
-window.grid_rowconfigure(0, weight=1)
-# window.grid_columnconfigure(0, minsize=150)  # ⬅️ TOTO nastaví šírku ľavého rámu
-window.grid_columnconfigure(1, weight=1)  # pravý stĺpec expanduje
-# Status ram
-status_frame = tk.Frame(window, bg='pink', height=150)
-status_frame.grid(row=0, column=1, sticky="ew")
-status_frame.grid_propagate(False)
+# Štýly pre ttk widgety
+style = ttk.Style()
+
+    # Základné štýly pre layout
+style.configure("TFrame", background="white")
+style.configure("Status.TFrame", background="pink")
+style.configure("Nav.TFrame", background="black")
+style.configure("Dashboard.TLabel", background="green", foreground="white", font=("Arial", 16))
+style.configure("Settings.TLabel", background="blue", foreground="white", font=("Arial", 16))
+style.configure("TButton", font=("Arial", 12))
+
+    # Štýly pre status label
+style.configure("Status.TLabel", background="lightgray", foreground="black", font=("Arial", 12), anchor="center")
+style.configure("Checking.TLabel", background="lightgray", foreground="black", font=("Arial", 12), anchor="center")
+style.configure("On.TLabel", background="green", foreground="white", font=("Arial", 12), anchor="center")
+style.configure("Standby.TLabel", background="orange", foreground="black", font=("Arial", 12), anchor="center")
+style.configure("Unknown.TLabel", background="gray", foreground="white", font=("Arial", 12), anchor="center")
+style.configure("Error.TLabel", background="red", foreground="white", font=("Arial", 12), anchor="center")
+
+# Status rám TOP
+status_frame = ttk.Frame(window, style="Status.TFrame", height=50)
+status_frame.pack(side="top", fill="x")
+
+# Hlavný rám pod statusom
+main_frame = ttk.Frame(window)
+main_frame.pack(side="top", fill="both", expand=True)
 
 # Ľavý rám (navigácia)
-left_frame = tk.Frame(window, bg="black", width=300)
-left_frame.grid(row=1, column=0, sticky="ns")
-left_frame.grid_propagate(False)  # zachová šírku
+left_frame = ttk.Frame(main_frame, style="Nav.TFrame", width=150)
+left_frame.pack(side="left", fill="y")
+left_frame.pack_propagate(False)
 
 # Pravý rám (obsah)
-right_frame = tk.Frame(window, bg="white")
-right_frame.grid(row=1, column=1, sticky="nsew")  # expanduje do zvyšku okna
+right_frame = ttk.Frame(main_frame, style="TFrame")
+right_frame.pack(side="left", fill="both", expand=True)
 
 # Tlačidlá v ľavom ráme
-btn_dashboard = tk.Button(left_frame, text="Dashboard", command=show_dashboard)
-btn_dashboard.pack(padx=25, pady=10, fill="x")                                          #cez padx nastavenie sirky laveho framu
+btn_settings = ttk.Button(left_frame, text="Settings", width=15, command=show_settings)
+btn_settings.pack(side='bottom', padx=5, pady=5)
 
-btn_settings = tk.Button(left_frame, text="Settings", command=show_settings)
-btn_settings.pack(pady=10, fill="x")
+btn_dashboard = ttk.Button(left_frame, text="Dashboard", width=15, command=show_dashboard)
+btn_dashboard.pack(side= "bottom", padx=5, pady=5)                                                                  # + fill="x" - roztahuje na celu sirku rodicovskeho ramu + ak chcem toto poradie musia byt oba bottom a v opacnom poradi ako ich chcem
 
 # Štart s Dashboardom
 show_dashboard()
