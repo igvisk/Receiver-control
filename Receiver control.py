@@ -45,13 +45,14 @@ root.title("Receiver control")
 root.geometry("400x200")
 root.resizable(False, False)
 
-ttk.Label(root, text="Zadaj IP adresu Denon AVR:").pack(pady=10)
+ttk.Label(root, text="Zadaj IP adresu AVR:").pack(pady=10)
 ip_entry = ttk.Entry(root, width=30)
+ip_entry.insert(0, "192.168.88.110")                                #docasne takto
 ip_entry.pack()
 
 ttk.Button(root, text="Pripojiť", command=on_connect).pack(pady=10)
 
-status_label = tk.Label(root, text="Stav zariadenia", width=30, height=2, relief="solid", font=("Arial", 12))
+status_label = tk.Label(root, text="Status", width=30, height=2, relief="solid", font=("Arial", 12))
 status_label.pack(pady=10)
 
 root.mainloop()
