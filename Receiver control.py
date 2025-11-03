@@ -14,8 +14,7 @@
 # 4a. settings_frame — vnorený rámec: Vznikne iba po kliknutí na “Settings”.
 #                                    -Je vnorený vo right_frame.
 #                                       Obsahuje: header (nadpis), ip_entry (pole pre IP adresu), Button “Pripojiť”, Status_label (stavové označenie)
-
-
+# Vsetky frame-y su .pack a vsetky widgety su .grid (v ramci frame-ov, okrem tlacitok na left_frame)
 
 import tkinter as tk
 from tkinter import ttk
@@ -27,35 +26,35 @@ import os
 CONFIG_FILE = "config.json"
 
 #switch frames
-def show_dashboard():
+def show_control():
     clear_right_frame()
-    dashboard_label = ttk.Label(right_frame, text="Dashboard", style="Dashboard.TLabel")
-    dashboard_label.pack(expand=True, fill="both")
+    control_label = ttk.Label(right_frame, text="Control", style="Control.TLabel")
+    control_label.pack(expand=True, fill="both")
 
 def show_settings():
-    global ip_entry, state_label
+    global ip_entry
     clear_right_frame()
 
     # Vnútorný rám pre všetky widgety Settings
     settings_frame = ttk.Frame(right_frame)
     settings_frame.pack(fill="both", expand=True, padx=20, pady=20)
 
+    # Nastavenie rozťahovania stĺpcov
+    settings_frame.grid_columnconfigure(0, weight=1)
+    settings_frame.grid_columnconfigure(1, weight=0)
+
     # Nadpis
     header = ttk.Label(settings_frame, text="Settings\nZadaj IP adresu AVR:", style="Settings.TLabel")
-    header.pack(fill="x", pady=10)
+    header.grid(row=0, column=0, columnspan=2, sticky="ew", pady=(0, 10))
 
     # IP entry
     ip_entry = ttk.Entry(settings_frame, width=30)
     ip_entry.insert(0, load_last_ip())
-    ip_entry.pack(pady=5)
+    ip_entry.grid(row=1, column=0, sticky="ew", padx=(0, 10), pady=5)
 
-    # Tlačidlo
-    ttk.Button(settings_frame, text="Pripojiť", command=on_connect).pack(pady=10)
-
-    # State label (ttk verzia so štýlom)
-    state_label = ttk.Label(settings_frame, text="Status", style="Status.TLabel")
-    state_label.pack(pady=10, fill="x")
-
+    # Tlačidlo vedľa IP entry
+    verify_btn = ttk.Button(settings_frame, text="Overiť stav", command=on_connect)
+    verify_btn.grid(row=1, column=1, sticky="ew", pady=5)
 
 def clear_right_frame():
     for widget in right_frame.winfo_children():
@@ -76,9 +75,8 @@ def load_last_ip():
     else:
         return "192.168.88.110"
 
-#####
 #Settings functions
-async def check_denon_status(ip_address: str, port: int = 23):
+async def check_state(ip_address: str, port: int = 23):
     try:
         reader, writer = await telnetlib3.open_connection(ip_address, port)
         writer.write('PW?\r')  # Power status command
@@ -105,9 +103,8 @@ def update_state_label(status: str):
     else:
         state_label.config(text='NOT FOUND', style="Error.TLabel")
 
-
 def on_connect():
-    global ip_entry, state_label
+    global ip_entry
     if ip_entry is None or state_label is None:
         print("IP entry or state label not initialized.")
         return
@@ -117,12 +114,9 @@ def on_connect():
     state_label.config(text='Kontrolujem...', style="Checking.TLabel")
     asyncio.run(run_check(ip))
 
-
 async def run_check(ip):
-    status = await check_denon_status(ip)
+    status = await check_state(ip)
     update_state_label(status)
-
-####
 
 # Hlavné okno
 window = tk.Tk()
@@ -138,13 +132,13 @@ style.configure("Status.TFrame", background="brown")
 style.configure("Nav.TFrame", background="black")
 
 # Labely - text
-style.configure("Dashboard.TLabel", background="green", foreground="white", font=("Arial", 16))
+style.configure("Control.TLabel", background="green", foreground="white", font=("Arial", 16))
 style.configure("Settings.TLabel", background="blue", foreground="white", font=("Arial", 16))
 
 # Tlačítka
 style.configure("TButton", font=("Arial", 12))
 
-# Štýly pre state label v settings
+# Štýly pre state label v status_frame
 style.configure("Status.TLabel", background="lightgray", foreground="black", font=("Arial", 12), anchor="center")
 style.configure("Checking.TLabel", background="lightgray", foreground="black", font=("Arial", 12), anchor="center")
 style.configure("On.TLabel", background="green", foreground="white", font=("Arial", 12), anchor="center")
@@ -155,6 +149,10 @@ style.configure("Error.TLabel", background="red", foreground="white", font=("Ari
 # Status rám TOP
 status_frame = ttk.Frame(window, style="Status.TFrame", height=50)
 status_frame.pack(side="top", fill="x")
+
+# State label v hornom status_frame
+state_label = ttk.Label(status_frame, text="AVR state", style="Status.TLabel")
+state_label.pack(pady=10, padx=10, side="right")
 
 # Hlavný rám pod statusom
 main_frame = ttk.Frame(window)
@@ -173,10 +171,10 @@ right_frame.pack(side="left", fill="both", expand=True)
 btn_settings = ttk.Button(left_frame, text="Settings", width=15, command=show_settings)
 btn_settings.pack(side='bottom', padx=5, pady=5)
 
-btn_dashboard = ttk.Button(left_frame, text="Dashboard", width=15, command=show_dashboard)
-btn_dashboard.pack(side="bottom", padx=5, pady=5)                                                       # + fill="x" - roztahuje na celu sirku rodicovskeho ramu + ak chcem toto poradie musia byt oba bottom a v opacnom poradi ako ich chcem
+btn_control = ttk.Button(left_frame, text="Control", width=15, command=show_control)
+btn_control.pack(side="bottom", padx=5, pady=5)
 
-# Štart s Dashboardom
-show_dashboard()
+# Štart s Control panelom
+show_control()
 
 window.mainloop()
