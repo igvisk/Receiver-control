@@ -6,9 +6,9 @@
 #                                                           -right_frame (hlavný obsah)
 # 3. left_frame (navigačný panel): Nachádza sa vľavo v hlavnom rámci.
 #                                -stýl "Nav.TFrame" – čierne pozadie
-#                                   Obsahuje navigačné tlačidlá: btn_settings a btn_dashboard, prepinaju obsah right_frame
+#                                   Obsahuje navigačné tlačidlá: btn_settings a btn_control, prepinaju obsah right_frame
 # 4. right_frame (hlavná obsahová plocha): Tento rám zobrazuje aktuálny obsah aplikácie.
-#                                       -Na začiatku je v ňom “Dashboard” (show_dashboard()), ale keď používateľ klikne na “Settings”, 
+#                                       -Na začiatku je v ňom “Control” (show_control()), ale keď používateľ klikne na “Settings”, 
 #                                       jeho obsah sa vymaže a nahradí novým (pomocou clear_right_frame()
 
 # 4a. settings_frame — vnorený rámec: Vznikne iba po kliknutí na “Settings”.
