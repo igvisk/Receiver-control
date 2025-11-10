@@ -71,7 +71,7 @@ def load_last_ip():
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
             data = json.load(f)
-            return data.get("ip", "192.168.88.110")  # default
+            return data.get("ip", "")                       # default- je pod apostrofom "192.168.88.110"
     else:
         return "192.168.88.110"
 
@@ -117,6 +117,48 @@ def on_connect():
 async def run_check(ip):
     status = await check_state(ip)
     update_state_label(status)
+
+def turn_power():
+    ip = load_last_ip()  # načítaj IP zo súboru
+    if not ip:
+        print("IP adresa nie je dostupná.")
+        update_state_label('NOT_FOUND')
+        return
+
+    state_label.config(text='Prepínam stav...', style="Checking.TLabel")
+    asyncio.run(run_toggle_power(ip))
+
+async def run_toggle_power(ip, port=23):
+    try:
+        reader, writer = await telnetlib3.open_connection(ip, port)
+        writer.write('PW?\r')  # Zistenie aktuálneho stavu
+        response = await reader.read(100)
+
+        if 'PWON' in response:
+            writer.write('PWSTANDBY\r')  # Vypnutie
+        elif 'PWSTANDBY' in response:
+            writer.write('PWON\r')       # Zapnutie
+        else:
+            update_state_label('UNKNOWN')
+            writer.close()
+            await writer.wait_closed()
+            return
+
+        await asyncio.sleep(0.5)
+        writer.write('PW?\r')  # Overenie po prepnutí
+        response = await reader.read(100)
+        writer.close()
+        await writer.wait_closed()
+
+        if 'PWON' in response:
+            update_state_label('ON')
+        elif 'PWSTANDBY' in response:
+            update_state_label('STANDBY')
+        else:
+            update_state_label('UNKNOWN')
+    except Exception:
+        update_state_label('NOT_FOUND')
+
 
 # Hlavné okno
 window = tk.Tk()
@@ -173,6 +215,10 @@ btn_settings.pack(side='bottom', padx=5, pady=5)
 
 btn_control = ttk.Button(left_frame, text="Control", width=15, command=show_control)
 btn_control.pack(side="bottom", padx=5, pady=5)
+
+#Tlacidla v status_frame
+btn_power = ttk.Button(status_frame, text="Power", width=15, command=turn_power)
+btn_power.pack(side="left", padx=5, pady=5)
 
 # Štart s Control panelom
 show_control()
